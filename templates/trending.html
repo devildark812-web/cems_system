@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cems_system</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #f8f9fb; padding: 20px; }
+        .chart-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); }
+        .nav-back { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="nav-back d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold m-0">CEMS_SYSTEM</h4>
+            <a href="/dashboard" class="btn btn-sm btn-outline-primary">Back to Dashboard</a>
+        </div>
+
+        <div class="chart-card">
+            <p class="small text-muted mb-4">* Click on gas names below to select specific gases for comparison</p>
+            <div style="height: 60vh;">
+                <canvas id="mainTrendingChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('mainTrendingChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'SOX', borderColor: '#ff6384', data: [], tension: 0.3, fill: false },
+                    { label: 'NOX', borderColor: '#36a2eb', data: [], tension: 0.3, fill: false },
+                    { label: 'CO', borderColor: '#ffce56', data: [], tension: 0.3, fill: false },
+                    { label: 'O2', borderColor: '#4bc0c0', data: [], tension: 0.3, fill: false },
+                    { label: 'CO2', borderColor: '#9966ff', data: [], tension: 0.3, fill: false },
+                    { label: 'PARTICULATE', borderColor: '#ff6b6b', data: [], tension: 0.3, fill: false },
+                    { label: 'FLOWRATE', borderColor: '#ff9f40', data: [], tension: 0.3, fill: false },
+                    { label: 'OPACITY', borderColor: '#ff5c5c', data: [], tension: 0.3, fill: false },
+                    { label: 'TEMP', borderColor: '#ff9f40', data: [], tension: 0.3, fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
+            }
+        });
+
+        async function updateChart() {
+            try {
+                const res = await fetch('/api/data');
+                const allData = await res.json();
+                
+                // Select data set based on current mode (measured or corrected)
+                // If you haven't implemented mode selection in this page yet, use data = allData.measured for now
+                const data = allData.measured || allData; 
+                
+                const now = new Date().toLocaleTimeString();
+
+                // จำกัดจำนวนจุดบนกราฟไม่ให้แน่นเกินไป (เช่น 30 จุด)
+                if (chart.data.labels.length > 30) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(d => d.data.shift());
+                }
+
+                chart.data.labels.push(now);
+                
+                // Key point: Loop to update all gases in the Dataset
+                chart.data.datasets.forEach(dataset => {
+                    const val = data[dataset.label]; // ดึงค่าตามชื่อ Label เช่น 'SOX', 'NOX'
+                    if (val !== undefined) {
+                        dataset.data.push(val);
+                    } else {
+                        dataset.data.push(null); // ใส่ null ถ้าไม่มีข้อมูลเพื่อไม่ให้เส้นขาดแบบผิดปกติ
+                    }
+                });
+
+                chart.update('none'); // อัปเดตกราฟแบบไม่ใช้ Animation เพื่อความลื่นไหล
+            } catch (error) {
+                console.error("Error updating trending chart:", error);
+            }
+        }
+
+        setInterval(updateChart, 2000);
+    </script>
+</body>
+</html>
