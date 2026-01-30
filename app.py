@@ -32,6 +32,11 @@ def trending():
     if 'user' not in session: return redirect(url_for('login'))
     return render_template('trending.html')
 
+@app.route('/details')
+def details():
+    if 'user' not in session: return redirect(url_for('login'))
+    return render_template('details.html')
+
 @app.route('/api/data')
 def get_data():
     # 1. Simulate measured values

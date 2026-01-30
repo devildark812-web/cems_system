@@ -18,8 +18,28 @@
         
         .gauge-container { position: relative; height: 100px; width: 100%; }
         .val-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .val-num { font-size: 1.3rem; font-weight: 800; color: var(--cems-green); line-height: 1; }
-        .val-unit { font-size: 0.6rem; color: #999; }
+        .val-num { 
+            font-size: 3.5rem; /* ใหญ่สะใจตามคำขอ */
+            font-weight: 900; 
+            color: #00c0a3; 
+        }
+        .val-unit { 
+            font-size: 1.2rem; /* ขยายหน่วยให้ชัดเจน */
+            font-weight: bold;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* เพิ่มการตอบสนองเมื่อเมาส์ชี้ (Hover) */
+        .gas-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .gas-card:hover {
+            transform: scale(1.03);
+            border-color: #00c0a3;
+            box-shadow: 0 10px 20px rgba(0,192,163,0.1);
+        }
         
         .history-chart { height: 60px !important; margin-top: 5px; }
         .filter-section { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 20px; border: 1px solid #eee; }
@@ -86,8 +106,8 @@
                 </div>`;
 
             // Card
-            grid.innerHTML += `
-                <div class="col-6 col-md-4 col-xl-3 gas-box" id="box-${gas.id}">
+            const cardHtml = `
+                <div class="col-6 col-md-4 col-xl-3 gas-box" id="box-${gas.id}" onclick="location.href='/details?id=${gas.id}'">
                     <div class="gas-card">
                         <div class="gas-title">${gas.id} <span class="float-end text-muted">⚙</span></div>
                         <div class="gauge-container">
@@ -100,6 +120,7 @@
                         <canvas id="hist-${gas.id}" class="history-chart"></canvas>
                     </div>
                 </div>`;
+            grid.innerHTML += cardHtml;
         });
 
         // Initialize Charts
