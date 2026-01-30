@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Details - CEMS SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .detail-card { background: white; border-radius: 15px; padding: 25px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .val-num { 
+            font-size: 2.2rem; /* ลดจาก 3rem */
+            font-weight: 800; 
+            color: #007bff; 
+            line-height: 1.1; 
+        }
+
+        .val-unit { 
+            font-size: 0.9rem; /* ลดจาก 1.1rem */
+            color: #888; 
+            font-weight: bold;
+        }
+
+        .gauge-wrapper { 
+            max-width: 220px; 
+        }
+        .chart-container { height: 350px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 id="gas-title" class="fw-bold m-0">GAZ MONITORING</h2>
+            <a href="/dashboard" class="btn btn-outline-secondary">กลับหน้าหลัก</a>
+        </div>
+
+        <div class="detail-card">
+            <div class="row align-items-center text-center">
+                <div class="col-lg-4 border-end">
+                    <div class="gauge-wrapper">
+                        <canvas id="detailGauge"></canvas>
+                        <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);">
+                            <div id="detail-val" class="val-num">0.00</div>
+                            <div id="detail-unit" class="val-unit">PPM</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <h5 class="text-muted mb-3">แนวโน้มข้อมูล (Real-time Trend)</h5>
+                    <div class="chart-container">
+                        <canvas id="detailChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = [
+            { id: 'SOX', unit: 'PPM', max: 500, limit: [200, 250] },
+            { id: 'NOX', unit: 'PPM', max: 500, limit: [1000, 1250] },
+            { id: 'CO', unit: 'PPM', max: 2000, limit: [1600, 2000] },
+            { id: 'CO2', unit: 'VOL%', max: 30, limit: [16, 20] },
+            { id: 'O2', unit: 'VOL%', max: 30, limit: [20, 25] },
+            { id: 'PARTICULATE', unit: 'MG/M3', max: 200, limit: [160, 200] },
+            { id: 'FLOWRATE', unit: 'M/S', max: 100, limit: [80, 100] },
+            { id: 'OPACITY', unit: '%', max: 100, limit: [80, 100] },
+            { id: 'TEMP', unit: 'degC', max: 400, limit: [240, 300] }
+        ];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gasId = urlParams.get('id') || 'SOX';
+        document.getElementById('gas-title').innerText = gasId + " MONITORING";
+
+        const gasConfig = config.find(g => g.id === gasId);
+        if (gasConfig) {
+            document.getElementById('detail-unit').innerText = gasConfig.unit;
+        }
+
+        // 1. สร้าง Gauge (Donut Chart)
+        const gCtx = document.getElementById('detailGauge').getContext('2d');
+        const gaugeChart = new Chart(gCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{ data: [0, 100], backgroundColor: ['#007bff', '#e9ecef'], borderWidth: 0 }]
+            },
+            options: { rotation: -90, circumference: 180, cutout: '80%', plugins: { legend: { display: false } } }
+        });
+
+        // 2. สร้าง Line Chart สำหรับประวัติ
+        const cCtx = document.getElementById('detailChart').getContext('2d');
+        const lineChart = new Chart(cCtx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: gasId, data: [], borderColor: '#007bff', backgroundColor: 'rgba(0, 123, 255, 0.1)', fill: true, tension: 0.4 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
+        });
+
+        async function updateDetail() {
+            try {
+                const res = await fetch('/api/data');
+                const allData = await res.json();
+                const val = allData.measured[gasId];
+                
+                // อัปเดตตัวเลข
+                document.getElementById('detail-val').innerText = val.toFixed(2);
+                
+                // อัปเดต Gauge
+                gaugeChart.data.datasets[0].data = [val, Math.max(0, gasConfig.max - val)];
+                gaugeChart.update('none');
+
+                // อัปเดต Line Chart
+                const now = new Date().toLocaleTimeString();
+                if (lineChart.data.labels.length > 20) {
+                    lineChart.data.labels.shift();
+                    lineChart.data.datasets[0].data.shift();
+                }
+                lineChart.data.labels.push(now);
+                lineChart.data.datasets[0].data.push(val);
+                lineChart.update('none');
+            } catch (e) { console.error(e); }
+        }
+
+        setInterval(updateDetail, 2000);
+        updateDetail();
+    </script>
+</body>
+</html>

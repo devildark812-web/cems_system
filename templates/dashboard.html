@@ -13,32 +13,40 @@
         .nav-link { color: #666; font-size: 0.9rem; margin-bottom: 5px; }
         .nav-link.active { color: var(--cems-green); font-weight: bold; background: #f0fdfa; }
         
-        .gas-card { background: #fff; border-radius: 12px; border: 1px solid #eef0f2; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .gas-card { background: #fff; border-radius: 12px; border: 1px solid #eef0f2; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: all 0.3s ease; cursor: pointer; }
+        .gas-card:hover { transform: scale(1.03); border-color: var(--cems-green); box-shadow: 0 10px 20px rgba(0,192,163,0.1); }
         .gas-title { font-weight: bold; font-size: 0.85rem; color: #333; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
         
-        .gauge-container { position: relative; height: 100px; width: 100%; }
-        .val-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        /* แก้ไขส่วนตัวเลขซ้อนทับ */
+        .gauge-container { 
+            height: 100px; 
+            position: relative; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .val-display { 
+            position: absolute; 
+            top: 60%; 
+            left: 50%; 
+            transform: translate(-50%, -10%); 
+            text-align: center; 
+            width: 100%;
+            z-index: 10;
+        }
         .val-num { 
-            font-size: 3.5rem; /* ใหญ่สะใจตามคำขอ */
-            font-weight: 900; 
-            color: #00c0a3; 
+            font-size: 1.3rem; /* ขนาดเล็กลงตามต้องการ */
+            font-weight: 800; 
+            color: var(--cems-green); 
+            line-height: 1;
+            display: block;
         }
         .val-unit { 
-            font-size: 1.2rem; /* ขยายหน่วยให้ชัดเจน */
-            font-weight: bold;
+            font-size: 0.9rem; /* ขนาดเล็กลงตามต้องการ */
+            font-weight: 900;
             color: #666;
-            text-transform: uppercase;
-        }
-
-        /* เพิ่มการตอบสนองเมื่อเมาส์ชี้ (Hover) */
-        .gas-card {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .gas-card:hover {
-            transform: scale(1.03);
-            border-color: #00c0a3;
-            box-shadow: 0 10px 20px rgba(0,192,163,0.1);
+            display: block;
+            margin-top: 4px;
         }
         
         .history-chart { height: 60px !important; margin-top: 5px; }
@@ -69,7 +77,7 @@
             </div>
 
             <div class="filter-section shadow-sm">
-                <p class="small fw-bold mb-2">Select variables to compare (single or multiple):</p>
+                <p class="small fw-bold mb-2">Select variables to compare:</p>
                 <div class="d-flex flex-wrap gap-3" id="selectors"></div>
             </div>
 
@@ -80,15 +88,15 @@
 
 <script>
     const config = [
-        { id: 'SOX', unit: 'PPM', max: 500, limit: [200, 250] },
-        { id: 'NOX', unit: 'PPM', max: 500, limit: [1000, 1250] },
-        { id: 'CO', unit: 'PPM', max: 2000, limit: [1600, 2000] },
-        { id: 'CO2', unit: 'VOL%', max: 30, limit: [16, 20] },
-        { id: 'O2', unit: 'VOL%', max: 30, limit: [20, 25] },
-        { id: 'PARTICULATE', unit: 'MG/M3', max: 200, limit: [160, 200] },
-        { id: 'FLOWRATE', unit: 'M/S', max: 100, limit: [80, 100] },
-        { id: 'OPACITY', unit: '%', max: 100, limit: [80, 100] },
-        { id: 'TEMP', unit: 'degC', max: 400, limit: [240, 300] }
+        { id: 'SOX', unit: 'PPM', max: 500 },
+        { id: 'NOX', unit: 'PPM', max: 500 },
+        { id: 'CO', unit: 'PPM', max: 2000 },
+        { id: 'CO2', unit: 'VOL%', max: 30 },
+        { id: 'O2', unit: 'VOL%', max: 30 },
+        { id: 'PARTICULATE', unit: 'MG/M3', max: 200 },
+        { id: 'FLOWRATE', unit: 'M/S', max: 100 },
+        { id: 'OPACITY', unit: '%', max: 100 },
+        { id: 'TEMP', unit: 'degC', max: 400 }
     ];
 
     const charts = {};
@@ -98,18 +106,18 @@
         const selectors = document.getElementById('selectors');
 
         config.forEach(gas => {
-            // Checkbox
             selectors.innerHTML += `
                 <div class="form-check form-check-inline">
                     <input class="form-check-input gas-check" type="checkbox" value="${gas.id}" id="chk-${gas.id}" checked>
                     <label class="form-check-label small" for="chk-${gas.id}">${gas.id}</label>
                 </div>`;
 
-            // Card
-            const cardHtml = `
-                <div class="col-6 col-md-4 col-xl-3 gas-box" id="box-${gas.id}" onclick="location.href='/details?id=${gas.id}'">
-                    <div class="gas-card">
-                        <div class="gas-title">${gas.id} <span class="float-end text-muted">⚙</span></div>
+            grid.innerHTML += `
+                <div class="col-6 col-md-4 col-xl-3 mb-3" id="box-${gas.id}">
+                    <div class="gas-card shadow-sm border-0" onclick="window.location.href='/details?id=${gas.id}'">
+                        <div class="gas-title">
+                            ${gas.id} <span class="float-end" style="font-size: 0.6rem; color: #aaa;">🔍 ดูรายละเอียด</span>
+                        </div>
                         <div class="gauge-container">
                             <canvas id="gauge-${gas.id}"></canvas>
                             <div class="val-display">
@@ -120,30 +128,26 @@
                         <canvas id="hist-${gas.id}" class="history-chart"></canvas>
                     </div>
                 </div>`;
-            grid.innerHTML += cardHtml;
         });
 
-        // Initialize Charts
         config.forEach(gas => {
-            // Gauge
+            // ปรับค่า cutout ให้วงบางลง เพิ่มพื้นที่ตัวเลข
             charts[`g_${gas.id}`] = new Chart(document.getElementById(`gauge-${gas.id}`), {
                 type: 'doughnut',
-                data: { datasets: [{ data: [0, gas.max], backgroundColor: ['#00c0a3', '#f0f0f0'], cutout: '85%' }] },
+                data: { datasets: [{ data: [0, gas.max], backgroundColor: ['#00c0a3', '#f0f0f0'], cutout: '88%' }] },
                 options: { rotation: -90, circumference: 180, plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
             });
 
-            // History (Area Chart)
             charts[`h_${gas.id}`] = new Chart(document.getElementById(`hist-${gas.id}`), {
                 type: 'line',
                 data: { labels: Array(20).fill(''), datasets: [{ 
                     data: Array(20).fill(null), borderColor: '#00c0a3', borderWidth: 1, 
-                    fill: true, backgroundColor: 'rgba(0, 192, 163, 0.2)', pointRadius: 0 
+                    fill: true, backgroundColor: 'rgba(0, 192, 163, 0.1)', pointRadius: 0 
                 }] },
                 options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
             });
         });
 
-        // Function for comparison (Hide/Show)
         document.querySelectorAll('.gas-check').forEach(cb => {
             cb.addEventListener('change', e => {
                 document.getElementById(`box-${e.target.value}`).style.display = e.target.checked ? 'block' : 'none';
@@ -151,45 +155,37 @@
         });
     }
 
-    let currentMode = 'corrected'; // ตั้งค่าเริ่มต้นตามรูปภาพของคุณ
+    let currentMode = 'corrected';
 
-    // Function for switching mode when button is clicked
     document.querySelectorAll('.btn-group .btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            // เปลี่ยนสีปุ่ม
             document.querySelectorAll('.btn-group .btn').forEach(b => {
-                b.classList.remove('btn-primary');
-                b.classList.add('btn-outline-secondary');
+                b.classList.replace('btn-primary', 'btn-outline-secondary');
             });
-            this.classList.remove('btn-outline-secondary');
-            this.classList.add('btn-primary');
-
-            // Change data mode
+            this.classList.replace('btn-outline-secondary', 'btn-primary');
             currentMode = this.innerText.toLowerCase() === 'terukur' ? 'measured' : 'corrected';
-            updateData(); // สั่งอัปเดตจอทันที
+            updateData();
         });
     });
 
     async function updateData() {
-        const res = await fetch('/api/data');
-        const allData = await res.json();
-        const data = allData[currentMode]; // Select data according to the pressed mode
-        
-        config.forEach(gas => {
-            const val = data[gas.id];
-            if (val !== undefined) {
-                document.getElementById(`val-${gas.id}`).innerText = val.toFixed(2);
-                
-                // อัปเดตกราฟหน้าปัด
-                charts[`g_${gas.id}`].data.datasets[0].data = [val, gas.max - val];
-                charts[`g_${gas.id}`].update('none');
-
-                // Update History
-                const h = charts[`h_${gas.id}`].data.datasets[0].data;
-                h.shift(); h.push(val);
-                charts[`h_${gas.id}`].update('none');
-            }
-        });
+        try {
+            const res = await fetch('/api/data');
+            const allData = await res.json();
+            const data = allData[currentMode];
+            
+            config.forEach(gas => {
+                const val = data[gas.id];
+                if (val !== undefined) {
+                    document.getElementById(`val-${gas.id}`).innerText = val.toFixed(2);
+                    charts[`g_${gas.id}`].data.datasets[0].data = [val, Math.max(0, gas.max - val)];
+                    charts[`g_${gas.id}`].update('none');
+                    const h = charts[`h_${gas.id}`].data.datasets[0].data;
+                    h.shift(); h.push(val);
+                    charts[`h_${gas.id}`].update('none');
+                }
+            });
+        } catch (e) { console.error("Update error:", e); }
     }
 
     initLayout();
